@@ -5,6 +5,8 @@ import { loadAuthors } from "../../redux/actions/authorActions";
 import PropTypes from "prop-types";
 import CourseForm from "./CourseForm";
 import { newCourse } from "../../../tools/mockData";
+import Spinner from "../common/Spinner";
+import { toast } from "react-toastify";
 
 function ManageCoursePage({
   courses,
@@ -12,22 +14,26 @@ function ManageCoursePage({
   loadAuthors,
   loadCourses,
   saveCourse,
+  history,
   ...props
 }) {
   const [course, setCourse] = useState({ ...props.course });
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (courses.length === 0) {
       loadCourses().catch((error) => {
         alert("Loading courses failed" + error);
       });
+    }else {
+      setCourse({...props.course})
     }
     if (authors.length === 0) {
       loadAuthors().catch((error) => {
         alert("Loading authors failed" + error);
       });
     }
-  }, []);
+  }, [props.course]);
   function handleChange(event) {
     const { name, value } = event.target;
     setCourse((prevCourse) => ({
@@ -36,22 +42,32 @@ function ManageCoursePage({
     }));
   }
 
-  function handleSave(e){
+  function handleSave(e) {
     e.preventDefault();
-    saveCourse(course);
+    setSaving(true);
+    saveCourse(course).then(() => {
+      toast.success("Course saved")
+      history.push("/courses");
+    }).catch((err) => {
+      setSaving(false);
+      setErrors({onSave: err.message})
+    });
   }
   return (
+    authors.length === 0 || courses.length === 0 ? <Spinner />:
     <CourseForm
       course={course}
       errors={errors}
       authors={authors}
       onChange={handleChange}
       onSave={handleSave}
+      saving={saving}
     />
   );
 }
 
 ManageCoursePage.propTypes = {
+  history: PropTypes.object.isRequired,
   course: PropTypes.object.isRequired,
   authors: PropTypes.array.isRequired,
   courses: PropTypes.array.isRequired,
@@ -60,13 +76,22 @@ ManageCoursePage.propTypes = {
   saveCourse: PropTypes.func.isRequired,
 };
 
+export function getCoursesBySlug(courses, slug) {
+  return courses.find((course) => course.slug === slug) || null;
+}
+
 // receives state as first argument and original props passed to component as
 // second argument and any object returned is spread into the component to be accessible on it's props
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
+  const slug = ownProps.match.params.slug;
+  const course =
+    slug && state.courses.length > 0
+      ? getCoursesBySlug(state.courses, slug)
+      : newCourse;
   return {
     courses: state.courses,
     authors: state.authors,
-    course: newCourse,
+    course,
   };
 }
 
