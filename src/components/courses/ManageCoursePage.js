@@ -25,8 +25,8 @@ function ManageCoursePage({
       loadCourses().catch((error) => {
         alert("Loading courses failed" + error);
       });
-    }else {
-      setCourse({...props.course})
+    } else {
+      setCourse({ ...props.course });
     }
     if (authors.length === 0) {
       loadAuthors().catch((error) => {
@@ -42,19 +42,34 @@ function ManageCoursePage({
     }));
   }
 
+  function formIsValid() {
+    const { title, authorId, category } = course;
+    const errors = {};
+    if (!title) errors.title = "Title is required.";
+    if (!authorId) errors.author = "Author is required.";
+    if (!category) errors.category = "Category is required.";
+
+    setErrors(errors);
+    // the form is still valid if the error object is empty after this
+    return Object.keys(errors).length === 0;
+  }
   function handleSave(e) {
     e.preventDefault();
+    if(!formIsValid()) return;
     setSaving(true);
-    saveCourse(course).then(() => {
-      toast.success("Course saved")
-      history.push("/courses");
-    }).catch((err) => {
-      setSaving(false);
-      setErrors({onSave: err.message})
-    });
+    saveCourse(course)
+      .then(() => {
+        toast.success("Course saved");
+        history.push("/courses");
+      })
+      .catch((err) => {
+        setSaving(false);
+        setErrors({ onSave: err.message });
+      });
   }
-  return (
-    authors.length === 0 || courses.length === 0 ? <Spinner />:
+  return authors.length === 0 || courses.length === 0 ? (
+    <Spinner />
+  ) : (
     <CourseForm
       course={course}
       errors={errors}
